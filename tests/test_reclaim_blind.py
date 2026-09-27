@@ -7,6 +7,7 @@ from replicator.benchmarks.reclaim import (
     assert_target_not_in_text,
     build_blind_task,
     load_reclaim_case,
+    parse_observed_metric,
     seal_reclaim_target,
 )
 from replicator.core.sealing import TargetSealer
@@ -40,3 +41,13 @@ def test_manifest_reference_and_blind_payload_are_distinct():
     raw = json.loads(CASE.read_text())
     assert raw["reference"]["value"] == 21.11
     assert "value" not in raw["blind_executor"]
+
+
+def test_airrep_metric_parser_normalizes_script_output_to_table_units():
+    case = load_reclaim_case(CASE)
+    raw, normalized = parse_observed_metric(
+        case,
+        "Results for flan\nLDS Spearman Correlation: 0.2111\n",
+    )
+    assert raw == 0.2111
+    assert normalized == 21.11

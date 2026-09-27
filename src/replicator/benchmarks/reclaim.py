@@ -26,6 +26,8 @@ class ReclaimCase:
     dataset_id: str | None = None
     benchmark: str | None = None
     source_url: str | None = None
+    result_regex: str | None = None
+    observed_scale: float = 1.0
 
     @property
     def claim_protocol(self) -> ClaimProtocol:
@@ -58,6 +60,8 @@ def load_reclaim_case(path: str | Path) -> ReclaimCase:
         dataset_id=executor.get("dataset_id"),
         benchmark=executor.get("benchmark"),
         source_url=data.get("source_url"),
+        result_regex=(data.get("result_parser") or {}).get("regex"),
+        observed_scale=float((data.get("result_parser") or {}).get("scale", 1.0)),
     )
     assert_target_not_in_text(case.blind_task, case.published_value)
     return case
@@ -99,3 +103,18 @@ def assert_target_not_in_text(text: str, value: float) -> None:
     leaks = sorted(token for token in known_value_strings(value) if token.lower() in normalized)
     if leaks:
         raise ValueError(f"published target leaked into blind executor payload: {leaks}")
+
+
+def parse_observed_metric(case: ReclaimCase, text: str) -> tuple[float, float]:
+    """Extract a raw metric from execution output and normalize its published unit.
+
+    Returns ``(raw_value, normalized_value)``. The scale is verifier-side
+    metadata and is never needed by the blind worker.
+    """
+    if not case.result_regex:
+        raise ValueError(f"no result parser configured for {case.paper_id}")
+    match = re.search(case.result_regex, text, flags=re.MULTILINE)
+    if not match:
+        raise ValueError(f"metric not found in execution output for {case.paper_id}")
+    raw = float(match.group(1))
+    return raw, raw * case.observed_scale

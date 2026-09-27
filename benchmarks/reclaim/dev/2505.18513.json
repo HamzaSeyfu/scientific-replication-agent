@@ -16,5 +16,10 @@
     "dataset_id": "sunweiwei/airrep-test",
     "benchmark": "flan",
     "task": "Reproduce the released AirRep FLAN attribution evaluation using the authors' public repository, the released sunweiwei/AirRep-Flan-Small model, the sunweiwei/airrep-test evaluation dataset, and softmax aggregation. Run the official evaluation path, capture the resulting LDS Spearman correlation from real execution, and preserve the command, repository commit, environment, raw stdout/stderr, and produced artifacts. Do not search for or use the paper's reported LDS result as an optimization target. If the official evaluation cannot be executed faithfully, return evidence of the blocker rather than substituting another metric, dataset, model, or configuration."
+  },
+  "result_parser": {
+    "regex": "LDS Spearman Correlation:\\s*([-+0-9.eE]+)",
+    "scale": 100.0,
+    "note": "AirRep 04_evaluate.py prints scipy Spearman in [0,1], while the paper and RECLAIM table report LDS x100."
   }
 }

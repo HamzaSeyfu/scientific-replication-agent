@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 90
     env:
       NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
-      CONTREE_TOKEN: ${{ secrets.CONTREE_TOKEN }}
+      CONTREE_TOKEN: ${{ secrets.NEBIUS_API_KEY }}
       CONTREE_PROJECT: ${{ secrets.CONTREE_PROJECT }}
       CONTREE_PROFILE: default
     steps:
@@ -35,7 +35,6 @@ jobs:
         shell: bash
         run: |
           test -n "$NEBIUS_API_KEY" || { echo "Missing NEBIUS_API_KEY"; exit 2; }
-          test -n "$CONTREE_TOKEN" || { echo "Missing CONTREE_TOKEN"; exit 2; }
           test -n "$CONTREE_PROJECT" || { echo "Missing CONTREE_PROJECT"; exit 2; }
 
       - name: Install project and ConTree

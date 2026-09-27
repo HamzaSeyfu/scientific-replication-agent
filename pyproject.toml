@@ -13,6 +13,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+sandbox = ["contree-sdk[httpx]"]
 
 [project.scripts]
 replicate-agent = "replicator.cli:main"

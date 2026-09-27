@@ -110,9 +110,10 @@ class NemotronWorkspaceAgent:
         env: Mapping[str, str] | None = None,
         transcript_path: Path | None = None,
         append_transcript: bool = False,
+        tool_backend: Any | None = None,
     ) -> AgentRunResult:
         start = time.monotonic()
-        tools = WorkspaceTools(cwd, env=env)
+        tools = tool_backend or WorkspaceTools(cwd, env=env)
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": BLIND_EXECUTOR_SYSTEM_PROMPT},
             {"role": "user", "content": prompt},

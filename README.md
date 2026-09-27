@@ -42,3 +42,13 @@ pytest -q
 ## Upstream plan
 
 We intend to integrate with ChicagoHAI/Veritas through its backend abstraction rather than reimplementing its replication pipeline. Veritas is Apache-2.0 licensed; any reused upstream code or bundled assets must retain the required attribution/NOTICE information.
+
+## Isolation boundary
+
+The local shell backend exists for unit tests and developer smoke tests only. Untrusted paper repositories are intended to execute in **Nebius ConTree** VM-isolated sandboxes. The optional integration can be installed with:
+
+```bash
+pip install -e ".[sandbox]"
+```
+
+ConTree credentials are loaded from its normal saved profile. Do not commit API keys to this repository. The blind executor must not have access to the verifier's sealed target state.

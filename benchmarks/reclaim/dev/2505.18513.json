@@ -1,0 +1,20 @@
+{
+  "paper_id": "2505.18513",
+  "source_url": "https://github.com/mithils3/reclaim/blob/main/data/splits/dev_14.jsonl",
+  "tier": "Easy",
+  "central_claim": "AirRep improves training-data attribution quality on the FLAN benchmark using learned representations and softmax attention aggregation.",
+  "reference": {
+    "metric": "LDS Spearman correlation",
+    "scope": "FLAN public evaluation set with AirRep-Flan-Small and softmax aggregation",
+    "match_bar_kind": "point_estimate",
+    "value": 21.11,
+    "tolerance_relative": 0.05
+  },
+  "blind_executor": {
+    "repo_url": "https://github.com/sunnweiwei/AirRep",
+    "model_id": "sunweiwei/AirRep-Flan-Small",
+    "dataset_id": "sunweiwei/airrep-test",
+    "benchmark": "flan",
+    "task": "Reproduce the released AirRep FLAN attribution evaluation using the authors' public repository, the released sunweiwei/AirRep-Flan-Small model, the sunweiwei/airrep-test evaluation dataset, and softmax aggregation. Run the official evaluation path, capture the resulting LDS Spearman correlation from real execution, and preserve the command, repository commit, environment, raw stdout/stderr, and produced artifacts. Do not search for or use the paper's reported LDS result as an optimization target. If the official evaluation cannot be executed faithfully, return evidence of the blocker rather than substituting another metric, dataset, model, or configuration."
+  }
+}

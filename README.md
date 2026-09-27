@@ -65,3 +65,7 @@ replicate-agent \
 ```
 
 The command performs target-agnostic online setup, preloads the declared AirRep artifacts, switches the blind worker to a network-isolated ConTree execution surface, runs Nemotron, audits the transcript, normalizes the observed LDS units, and only then unseals the published target for deterministic verification.
+
+### GitHub Actions live run
+
+The repository also contains a manual **Live AirRep replication** workflow. Configure the repository secrets `NEBIUS_API_KEY`, `CONTREE_TOKEN`, and `CONTREE_PROJECT`, then dispatch the workflow. It runs the unit tests before spending credits and uploads the evidence bundle even when the replication step fails.

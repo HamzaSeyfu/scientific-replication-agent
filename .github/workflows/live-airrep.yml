@@ -1,0 +1,87 @@
+name: Live AirRep replication
+
+on:
+  workflow_dispatch:
+    inputs:
+      timeout_seconds:
+        description: Blind agent timeout in seconds
+        required: false
+        default: "3600"
+
+permissions:
+  contents: read
+
+env:
+  CONTREE_URL: https://api.tokenfactory.nebius.com/sandboxes
+
+jobs:
+  replicate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
+      CONTREE_TOKEN: ${{ secrets.CONTREE_TOKEN }}
+      CONTREE_PROJECT: ${{ secrets.CONTREE_PROJECT }}
+      CONTREE_PROFILE: default
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          test -n "$NEBIUS_API_KEY" || { echo "Missing NEBIUS_API_KEY"; exit 2; }
+          test -n "$CONTREE_TOKEN" || { echo "Missing CONTREE_TOKEN"; exit 2; }
+          test -n "$CONTREE_PROJECT" || { echo "Missing CONTREE_PROJECT"; exit 2; }
+
+      - name: Install project and ConTree
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[sandbox]" contree-cli
+
+      - name: Configure ConTree profile
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.config/contree"
+          python - <<'PY'
+          import configparser
+          import os
+          from pathlib import Path
+
+          path = Path.home() / ".config" / "contree" / "auth.ini"
+          cfg = configparser.ConfigParser()
+          cfg["DEFAULT"] = {"profile": "default"}
+          cfg["profile:default"] = {
+              "type": "iam",
+              "url": os.environ["CONTREE_URL"],
+              "token": os.environ["CONTREE_TOKEN"],
+              "project": os.environ["CONTREE_PROJECT"],
+          }
+          with path.open("w") as handle:
+              cfg.write(handle)
+          path.chmod(0o600)
+          PY
+
+      - name: Verify tests before spending credits
+        run: python -m pip install -e ".[dev]" && pytest -q
+
+      - name: Run blind AirRep vertical slice
+        run: |
+          replicate-agent \
+            --case benchmarks/reclaim/dev/2505.18513.json \
+            --output-dir runs/airrep-2505.18513 \
+            --timeout "${{ inputs.timeout_seconds }}"
+
+      - name: Upload evidence bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: airrep-evidence-${{ github.run_id }}
+          path: |
+            runs/airrep-2505.18513/
+          if-no-files-found: warn
+          retention-days: 30

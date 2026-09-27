@@ -18,7 +18,7 @@ class ContreeRuntime:
     being passed through prompts or committed configuration.
     """
 
-    def __init__(self, *, profile: str | None = None, image: str = "ubuntu:latest") -> None:
+    def __init__(self, *, profile: str | None = None, image: str = "docker://docker.io/python:3.11") -> None:
         self.profile = profile
         self.image_tag = image
         self._client_cm: Any = None
@@ -32,7 +32,10 @@ class ContreeRuntime:
         self._client_cm = ContreeClient.from_profile(profile=self.profile)
         self._client = self._client_cm.__enter__()
         contree = ContreeSync(self._client)
-        image = contree.images.use(self.image_tag)
+        if self.image_tag.startswith(("docker://", "oci://")):
+            image = contree.images.oci(self.image_tag)
+        else:
+            image = contree.images.use(self.image_tag)
         self.session = image.session()
         return self
 

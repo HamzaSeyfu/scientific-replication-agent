@@ -52,3 +52,16 @@ pip install -e ".[sandbox]"
 ```
 
 ConTree credentials are loaded from its normal saved profile. Do not commit API keys to this repository. The blind executor must not have access to the verifier's sealed target state.
+
+## First live benchmark run
+
+After configuring Token Factory and a ConTree profile, the first real vertical slice is:
+
+```bash
+pip install -e ".[sandbox]"
+replicate-agent \
+  --case benchmarks/reclaim/dev/2505.18513.json \
+  --output-dir runs/airrep-2505.18513
+```
+
+The command performs target-agnostic online setup, preloads the declared AirRep artifacts, switches the blind worker to a network-isolated ConTree execution surface, runs Nemotron, audits the transcript, normalizes the observed LDS units, and only then unseals the published target for deterministic verification.

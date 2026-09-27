@@ -22,6 +22,7 @@ def prepare_reclaim_workspace(case: ReclaimCase, tools, *, evidence_path: Path |
     network-disabled tool surface over the resulting filesystem state.
     """
     commands = [
+        "command -v git >/dev/null && command -v unshare >/dev/null || (apt-get update && apt-get install -y git util-linux)",
         f"git clone --depth 1 {case.repo_url} .",
         "python -m pip install -e . datasets scipy tqdm",
     ]

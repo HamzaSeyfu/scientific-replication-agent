@@ -63,7 +63,6 @@ EVIDENCE CONTRACT:
 - Do not use a remembered, searched, or inferred published numeric answer to guide decisions.
 - If faithful execution is blocked, stop with evidence of the blocker rather than substituting another experiment.
 """
-    # Scan the complete model payload, not merely the task fragment.
     from .benchmarks.reclaim import assert_target_not_in_text
 
     assert_target_not_in_text(prompt, case.published_value)
@@ -78,13 +77,8 @@ def run_reclaim_case(
     executor: BlindExecutor,
     sealer: TargetSealer,
     timeout_seconds: float | None = 1800,
+    repo_commit: str | None = None,
 ) -> ReplicationRun:
-    """Execute one blind case and finalize only after transcript audit.
-
-    This function deliberately makes no claim that a local workspace is a secure
-    sandbox. Production calls must supply an executor whose tools are backed by
-    the external isolation boundary.
-    """
     case = load_reclaim_case(case_path)
     sealed_target = seal_reclaim_target(case, sealer)
     prompt = build_executor_prompt(case)
@@ -118,11 +112,11 @@ def run_reclaim_case(
         attempt=1,
         exit_code=0 if getattr(result, "success", False) else 1,
         command="blind-agent replication run",
+        commit=repo_commit,
         raw_metrics={} if raw_value is None else {case.metric: raw_value},
         artifacts=[str(transcript)],
     )
 
-    # The target is only opened here, after the transcript audit has completed.
     certificate = verify_scalar_claim(
         claim=case.claim_protocol,
         sealed_target=sealed_target,

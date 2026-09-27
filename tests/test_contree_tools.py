@@ -52,3 +52,20 @@ def test_contree_write_transfers_content_without_interpolating_plaintext():
     command = session.commands[-1]
     assert "scientific evidence" not in command
     assert "base64 -d" in command
+
+
+def test_blind_contree_shell_wraps_commands_in_network_namespace():
+    session = FakeSession()
+    tools = ContreeWorkspaceTools(session, network_enabled=False)
+    tools.run_shell("python experiment.py")
+    command = session.commands[-1]
+    assert "unshare --net" in command
+    assert "HF_HUB_OFFLINE=1" in command
+
+
+def test_setup_contree_tools_keep_network_enabled():
+    session = FakeSession()
+    tools = ContreeWorkspaceTools(session, network_enabled=True)
+    tools.run_shell("git clone https://example.invalid/repo .")
+    command = session.commands[-1]
+    assert "unshare --net" not in command

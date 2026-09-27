@@ -4,7 +4,7 @@ import base64
 import posixpath
 import shlex
 import subprocess
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ..agent.workspace import ToolResult
@@ -44,10 +44,18 @@ class ContreeRuntime:
 class ContreeWorkspaceTools:
     """Workspace tool surface backed by a persistent ConTree VM session."""
 
-    def __init__(self, session: Any, *, root: str = "/workspace", max_output_chars: int = 20_000):
+    def __init__(
+        self,
+        session: Any,
+        *,
+        root: str = "/workspace",
+        max_output_chars: int = 20_000,
+        network_enabled: bool = False,
+    ):
         self.session = session
         self.root = posixpath.normpath(root)
         self.max_output_chars = max_output_chars
+        self.network_enabled = network_enabled
         self._run_raw(f"mkdir -p {shlex.quote(self.root)}", timeout_seconds=60)
 
     def _relative(self, path: str) -> str:
@@ -82,8 +90,25 @@ class ContreeWorkspaceTools:
         output = (stdout or "") + (stderr or "")
         return ToolResult(code == 0, self._truncate(output), code)
 
+    def assert_network_isolation(self) -> None:
+        if self.network_enabled:
+            raise RuntimeError("network isolation check requested on network-enabled tools")
+        result = self._run_raw("unshare --net -- true", timeout_seconds=30)
+        if not result.ok:
+            raise RuntimeError(
+                "ConTree image cannot create a private network namespace; refusing blind run"
+            )
+
     def run_shell(self, command: str, timeout_seconds: int = 120) -> ToolResult:
-        wrapped = f"cd {shlex.quote(self.root)} && ({command})"
+        inner = f"cd {shlex.quote(self.root)} && ({command})"
+        if self.network_enabled:
+            wrapped = inner
+        else:
+            offline_inner = (
+                "export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1; "
+                + inner
+            )
+            wrapped = f"unshare --net -- sh -lc {shlex.quote(offline_inner)}"
         return self._run_raw(wrapped, timeout_seconds=timeout_seconds)
 
     def list_files(self, path: str = ".") -> ToolResult:
@@ -130,3 +155,34 @@ class ContreeWorkspaceTools:
             return text
         half = self.max_output_chars // 2
         return text[:half] + "\n... [output truncated] ...\n" + text[-half:]
+
+
+class ContreeBlindExecutor:
+    """Adapt NemotronWorkspaceAgent to an already-prepared ConTree workspace."""
+
+    def __init__(self, client, tools: ContreeWorkspaceTools, *, max_steps: int = 40) -> None:
+        from ..agent.nemotron import NemotronWorkspaceAgent
+
+        if tools.network_enabled:
+            raise ValueError("blind executor requires network-disabled ConTree tools")
+        self.agent = NemotronWorkspaceAgent(client, max_steps=max_steps)
+        self.tools = tools
+
+    def run(
+        self,
+        *,
+        prompt: str,
+        cwd,
+        timeout_seconds: float | None,
+        transcript_path=None,
+        append_transcript: bool = False,
+    ):
+        self.tools.assert_network_isolation()
+        return self.agent.run(
+            prompt=prompt,
+            cwd=Path("/workspace"),
+            timeout_seconds=timeout_seconds,
+            transcript_path=transcript_path,
+            append_transcript=append_transcript,
+            tool_backend=self.tools,
+        )

@@ -5,8 +5,6 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
-from openai import OpenAI
-
 
 @dataclass
 class NemotronClient:
@@ -25,8 +23,25 @@ class NemotronClient:
             base_url=os.environ.get("NEBIUS_BASE_URL", cls.base_url),
         )
 
-    def _client(self) -> OpenAI:
+    def _client(self):
+        from openai import OpenAI
+
         return OpenAI(api_key=self.api_key, base_url=self.base_url)
+
+    def chat(
+        self,
+        *,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> Any:
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+        }
+        if tools:
+            kwargs["tools"] = tools
+            kwargs["tool_choice"] = "auto"
+        return self._client().chat.completions.create(**kwargs)
 
     def json_response(self, *, system: str, user: str) -> dict[str, Any]:
         response = self._client().chat.completions.create(
